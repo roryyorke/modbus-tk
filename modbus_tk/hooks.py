@@ -15,6 +15,21 @@ import threading
 _LOCK = threading.RLock()
 _HOOKS = {}
 
+FORBIDDEN_HOOKS = [
+    "modbus.ModbusBlock.setitem",
+    "modbus.Slave.handle_request",
+    "modbus.Slave.on_exception",
+    "modbus.Slave.on_handle_broadcast",
+    "modbus.Slave.handle_read_coils_request",
+    "modbus.Slave.handle_read_discrete_inputs_request",
+    "modbus.Slave.handle_read_holding_registers_request",
+    "modbus.Slave.handle_read_input_registers_request",
+    "modbus.Slave.handle_write_multiple_registers_request",
+    "modbus.Slave.handle_write_multiple_coils_request",
+    "modbus.Slave.handle_write_single_register_request",
+    "modbus.Slave.handle_write_single_coil_request",
+    ]
+
 
 def install_hook(name, fct):
     """
@@ -76,6 +91,10 @@ def install_hook(name, fct):
     modbus.Server.before_handle_request((server, request)) returns modified request or None
     modbus.Server.after_handle_request((server, response)) returns modified response or None
     """
+
+    if name in FORBIDDEN_HOOKS:
+        raise RuntimeError('hook {name} is no longer allowed'.format(name))
+
     with _LOCK:
         try:
             _HOOKS[name].append(fct)

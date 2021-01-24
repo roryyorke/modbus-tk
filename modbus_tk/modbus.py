@@ -377,7 +377,6 @@ class ModbusBlock(object):
 
     def __setitem__(self, item, value):
         """"""
-        call_hooks("modbus.ModbusBlock.setitem", (self, item, value))
         return self._data.__setitem__(item, value)
 
 
@@ -469,12 +468,10 @@ class Slave(object):
 
     def _read_coils(self, request_pdu):
         """handle read coils modbus function"""
-        call_hooks("modbus.Slave.handle_read_coils_request", (self, request_pdu))
         return self._read_digital(defines.COILS, request_pdu)
 
     def _read_discrete_inputs(self, request_pdu):
         """handle read discrete inputs modbus function"""
-        call_hooks("modbus.Slave.handle_read_discrete_inputs_request", (self, request_pdu))
         return self._read_digital(defines.DISCRETE_INPUTS, request_pdu)
 
     def _read_registers(self, block_type, request_pdu):
@@ -502,17 +499,14 @@ class Slave(object):
 
     def _read_holding_registers(self, request_pdu):
         """handle read coils modbus function"""
-        call_hooks("modbus.Slave.handle_read_holding_registers_request", (self, request_pdu))
         return self._read_registers(defines.HOLDING_REGISTERS, request_pdu)
 
     def _read_input_registers(self, request_pdu):
         """handle read coils modbus function"""
-        call_hooks("modbus.Slave.handle_read_input_registers_request", (self, request_pdu))
         return self._read_registers(defines.ANALOG_INPUTS, request_pdu)
 
     def _write_multiple_registers(self, request_pdu):
         """execute modbus function 16"""
-        call_hooks("modbus.Slave.handle_write_multiple_registers_request", (self, request_pdu))
         # get the starting address and the number of items from the request pdu
         (starting_address, quantity_of_x, byte_count) = struct.unpack(">HHB", request_pdu[1:6])
 
@@ -533,7 +527,6 @@ class Slave(object):
 
     def _write_multiple_coils(self, request_pdu):
         """execute modbus function 15"""
-        call_hooks("modbus.Slave.handle_write_multiple_coils_request", (self, request_pdu))
         # get the starting address and the number of items from the request pdu
         (starting_address, quantity_of_x, byte_count) = struct.unpack(">HHB", request_pdu[1:6])
 
@@ -568,7 +561,6 @@ class Slave(object):
 
     def _write_single_register(self, request_pdu):
         """execute modbus function 6"""
-        call_hooks("modbus.Slave.handle_write_single_register_request", (self, request_pdu))
 
         fmt = "H" if self.unsigned else "h"
         (data_address, value) = struct.unpack(">H"+fmt, request_pdu[1:5])
@@ -580,7 +572,6 @@ class Slave(object):
     def _write_single_coil(self, request_pdu):
         """execute modbus function 5"""
 
-        call_hooks("modbus.Slave.handle_write_single_coil_request", (self, request_pdu))
         (data_address, value) = struct.unpack(">HH", request_pdu[1:5])
         block, offset = self._get_block_and_offset(defines.COILS, data_address, 1)
         if value == 0:
@@ -600,10 +591,6 @@ class Slave(object):
         # thread-safe
         with self._data_lock:
             try:
-                retval = call_hooks("modbus.Slave.handle_request", (self, request_pdu))
-                if retval is not None:
-                    return retval
-
                 # get the function code
                 (function_code, ) = struct.unpack(">B", request_pdu[0:1])
 
@@ -625,7 +612,6 @@ class Slave(object):
                 response_pdu = self._fn_code_map[function_code](request_pdu)
                 if response_pdu:
                     if broadcast:
-                        call_hooks("modbus.Slave.on_handle_broadcast", (self, response_pdu))
                         LOGGER.debug("broadcast: %s", get_log_buffer("!!", response_pdu))
                         return ""
                     else:
@@ -634,7 +620,6 @@ class Slave(object):
 
             except ModbusError as excpt:
                 LOGGER.debug(str(excpt))
-                call_hooks("modbus.Slave.on_exception", (self, function_code, excpt))
                 return struct.pack(">BB", function_code+128, excpt.get_exception_code())
 
     def add_block(self, block_name, block_type, starting_address, size):
